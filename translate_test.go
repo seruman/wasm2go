@@ -17,7 +17,7 @@ import (
 
 func Test_translate(t *testing.T) {
 	tests := []string{
-		"fib", "loops", "memory", "primes", "recursion", "stack", "table", "trig",
+		"fib", "loops", "memory", "primes", "recursion", "simd", "simd_type", "stack", "table", "trig",
 		"regression/select_effect", "regression/store_grow", "regression/tee_self_loop",
 	}
 	for _, name := range tests {
@@ -41,6 +41,29 @@ func Test_translate(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func Test_translateSIMDBuildTags(t *testing.T) {
+	f, err := os.Open("testdata/simd/simd.wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	oldTags := *tags
+	*tags = "custom"
+	defer func() { *tags = oldTags }()
+
+	var out bytes.Buffer
+	if err := translate(f, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	got := strings.SplitN(out.String(), "\n", 4)[2]
+	want := "//go:build (custom) && goexperiment.simd && (amd64 || arm64 || wasm)"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
