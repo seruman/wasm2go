@@ -28,6 +28,7 @@ including the following features:
 - [bulk memory instructions] and [reference types];
 - [non-trapping float-to-int conversions];
 - [sign-extension instructions];
+- selected [SIMD instructions] [^2];
 - [multi-value results];
 - 64-bit address space;
 - [extended constant expressions];
@@ -39,6 +40,7 @@ including the following features:
 [reference types]: https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mreference-types
 [non-trapping float-to-int conversions]: https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mnontrapping-fptoint
 [sign-extension instructions]: https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-msign-ext
+[SIMD instructions]: https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-msimd128
 [multi-value results]: https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mmultivalue
 [extended constant expressions]: https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mextended-const
 [tail calls]: https://clang.llvm.org/docs/ClangCommandLineReference.html#cmdoption-clang-mtail-call
@@ -47,6 +49,10 @@ including the following features:
 
 [^1]: `wasm2go` does **not** guarantee tail behavior;
 judge for yourself if using tail calls generates better code.
+
+[^2]: SIMD support requires `GOEXPERIMENT=simd`
+and is available on `amd64`, `arm64`, and `wasm`.
+On `amd64`, it also requires AVX2.
 
 ## Generated code
 
