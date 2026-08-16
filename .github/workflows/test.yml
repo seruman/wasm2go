@@ -26,6 +26,14 @@ jobs:
     - name: Test native
       run: go test ./helpers ./internal/... ./libc-gen/...
 
+    - name: Test SIMD
+      run: GOEXPERIMENT=simd go test . ./helpers
+
+    - name: Test SIMD wasm
+      run: |
+        GOOS=js GOARCH=wasm GOEXPERIMENT=simd go test -c -o /tmp/wasm2go.test .
+        GOOS=js GOARCH=wasm GOEXPERIMENT=simd go test -c -o /tmp/helpers.test ./helpers
+
     - name: Test 386
       run: GOARCH=386 GO386=sse2 go test ./helpers ./internal/...
 
@@ -83,6 +91,9 @@ jobs:
 
     - name: Test native
       run: go test ./helpers ./internal/... ./libc-gen/...
+
+    - name: Test SIMD
+      run: GOEXPERIMENT=simd go test . ./helpers
 
     - name: Test arm
       run: GOARCH=arm GOARM=7 go test ./helpers ./internal/...
