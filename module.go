@@ -94,6 +94,12 @@ func (t *translator) createNewFunc() ast.Decl {
 				Rhs: []ast.Expr{&ast.CallExpr{
 					Fun:  newID("new"),
 					Args: []ast.Expr{newID("Module")}}}}}}
+	if t.simd {
+		t.helpers.add("v128_check_cpu")
+		body.List = append([]ast.Stmt{
+			&ast.ExprStmt{X: &ast.CallExpr{Fun: newID("v128_check_cpu")}}},
+			body.List...)
+	}
 
 	// Create the params, and initialize fields.
 	params := []*ast.Field{}

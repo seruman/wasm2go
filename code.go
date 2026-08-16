@@ -55,6 +55,10 @@ func (t *translator) readCodeForFunction(fn *funcCompiler) error {
 			return err
 		}
 
+		if wasmType(typ) == v128 {
+			t.simd = true
+			t.helpers.add("v128")
+		}
 		ids := make([]*ast.Ident, n)
 		for i := range int(n) {
 			ids[i] = localVar(numLocals)
@@ -1126,11 +1130,9 @@ func (t *translator) readCodeForFunction(fn *funcCompiler) error {
 			}
 
 		case 0xfd: // SIMD
-			code, err := readLEB128(t.in)
-			if err != nil {
+			if err := t.readOpcodeSIMD(fn); err != nil {
 				return err
 			}
-			return fmt.Errorf("unsupported opcode (SIMD): 0xFD 0x%02X", code)
 
 		case 0xfe: // Atomics
 			err := t.readOpcodeAtomic(fn)

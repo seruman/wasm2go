@@ -32,6 +32,22 @@ func (t *translator) constI64() (ast.Expr, error) {
 	return &ast.CallExpr{Fun: newID("i64"), Args: a}, nil
 }
 
+func (t *translator) constV128() (ast.Expr, error) {
+	var v [2]uint64
+	if err := binary.Read(t.in, binary.LittleEndian, &v); err != nil {
+		return nil, err
+	}
+
+	t.simd = true
+	t.helpers.add("v128_const")
+	return &ast.CallExpr{
+		Fun: newID("v128_const"),
+		Args: []ast.Expr{
+			&ast.BasicLit{Kind: token.INT, Value: formatUint(v[0])},
+			&ast.BasicLit{Kind: token.INT, Value: formatUint(v[1])}},
+	}, nil
+}
+
 func (t *translator) constF32() (ast.Expr, error) {
 	var v uint32
 	if err := binary.Read(t.in, binary.LittleEndian, &v); err != nil {
