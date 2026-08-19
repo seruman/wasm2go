@@ -127,6 +127,21 @@ func Test_i32x4(t *testing.T) {
 	}
 }
 
+func Test_i64x2_shr_u(t *testing.T) {
+	var xb [16]byte
+	binary.LittleEndian.PutUint64(xb[0:], 0x8000000000000000)
+	binary.LittleEndian.PutUint64(xb[8:], 0xffffffffffffffff)
+
+	got := v128_bytes(i64x2_shr_u(v128_from_bytes(xb), 68))
+	want := [16]byte{
+		0, 0, 0, 0, 0, 0, 0, 8,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0f,
+	}
+	if got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func Test_f64x2(t *testing.T) {
 	x := f64x2_replace_lane(f64x2_splat(1.5), 1, -2)
 	y := f64x2_replace_lane(f64x2_splat(2), 1, 4)

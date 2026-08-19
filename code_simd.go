@@ -237,6 +237,8 @@ func (t *translator) readOpcodeSIMD(fn *funcCompiler) error {
 		fn.uniHelper("i64x2_extend_high_i32x4_u")
 	case 0xcb: // i64x2.shl
 		fn.binHelper("i64x2_shl")
+	case 0xcd: // i64x2.shr_u
+		fn.binHelper("i64x2_shr_u")
 	case 0xd6: // i64x2.eq
 		fn.binHelper("i64x2_eq")
 	case 0xd7: // i64x2.ne

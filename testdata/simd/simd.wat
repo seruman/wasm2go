@@ -40,4 +40,10 @@
     v128.const i8x16 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
     v128.store8_lane 15
     i32.const 96
-    i32.load8_u))
+    i32.load8_u)
+
+  (func (export "shr_u") (result i64)
+    v128.const i64x2 -1 -9223372036854775808
+    i32.const 4
+    i64x2.shr_u
+    i64x2.extract_lane 0))

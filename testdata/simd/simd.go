@@ -56,6 +56,11 @@ func (m *Module) Xstore_lane() int32 {
 	t0 := int32(m.memory[uint32(i32(96))])
 	return t0
 }
+func (m *Module) Xshr_u() int64 {
+	t0 := i64x2_shr_u(v128_const(0xffffffffffffffff, 0x8000000000000000), i32(4))
+	t1 := i64x2_extract_lane(t0, 0)
+	return t1
+}
 
 type v128 = archsimd.Uint8x16
 
@@ -76,6 +81,18 @@ func v128_bytes(x v128) [16]byte {
 	var b [16]byte
 	x.StoreArray(&b)
 	return b
+}
+
+func asU64(x v128) archsimd.Uint64x2 {
+	return x.ReshapeToUint64s()
+}
+
+func asI64(x v128) archsimd.Int64x2 {
+	return x.ReshapeToUint64s().BitsToInt64()
+}
+
+func fromU64(x archsimd.Uint64x2) v128 {
+	return x.ReshapeToUint8s()
 }
 
 func fromM8(x archsimd.Mask8x16) v128 {
@@ -102,6 +119,10 @@ func i8x16_extract_lane_u(x v128, lane uint8) int32 {
 	return int32(x.GetElem(lane))
 }
 
+func i64x2_extract_lane(x v128, lane uint8) int64 {
+	return asI64(x).GetElem(lane)
+}
+
 func i8x16_eq(x, y v128) v128 {
 	return fromM8(x.Equal(y))
 }
@@ -113,6 +134,10 @@ func i8x16_bitmask(x v128) int32 {
 		r |= int32(v>>7) << i
 	}
 	return r
+}
+
+func i64x2_shr_u(x v128, y int32) v128 {
+	return fromU64(asU64(x).ShiftAllRight(uint64(y & 63)))
 }
 
 //go:nosplit

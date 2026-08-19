@@ -33,6 +33,13 @@ func Test_simd(t *testing.T) {
 	}
 }
 
+func Test_simdShift(t *testing.T) {
+	m := simd_test.New()
+	if got, want := m.Xshr_u(), int64(0x0fffffffffffffff); got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+}
+
 func Test_simdType(t *testing.T) {
 	if got := simd_type_test.New(); got == nil {
 		t.Error("New returned nil")

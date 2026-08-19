@@ -657,6 +657,10 @@ func i64x2_shl(x v128, y int32) v128 {
 	return fromU64(asU64(x).ShiftAllLeft(uint64(y & 63)))
 }
 
+func i64x2_shr_u(x v128, y int32) v128 {
+	return fromU64(asU64(x).ShiftAllRight(uint64(y & 63)))
+}
+
 func f64x2_add(x, y v128) v128 {
 	return fromF64(asF64(x).Add(asF64(y)))
 }
