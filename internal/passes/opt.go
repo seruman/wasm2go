@@ -343,3 +343,23 @@ func RemoveParens(n ast.Node) {
 		return true
 	})
 }
+
+// RemoveUnreachable deletes statements that follow one that can't complete,
+// up to the next label, since nothing can reach them. Other passes can leave
+// these behind, as a return after a goto, which go vet reports.
+func RemoveUnreachable(fn *ast.FuncDecl) {
+	postApplyStmts(fn, func(stmts []ast.Stmt) []ast.Stmt {
+		out := stmts[:0]
+		reachable := true
+		for _, s := range stmts {
+			if is[*ast.LabeledStmt](s) {
+				reachable = true
+			}
+			if reachable {
+				out = append(out, s)
+				reachable = canComplete(s)
+			}
+		}
+		return out
+	})
+}
