@@ -7,13 +7,12 @@ import (
 	"slices"
 )
 
-// readMemOffset consumes a memarg. The translator supports one linear memory.
 func (t *translator) readMemOffset() (uint64, error) {
 	flags, err := readLEB128(t.in)
 	if err != nil {
 		return 0, err
 	}
-	if flags&0x40 != 0 { // Explicit memory index precedes the offset.
+	if flags&0x40 != 0 {
 		index, err := readLEB128(t.in)
 		if err != nil {
 			return 0, err

@@ -13,8 +13,6 @@ func TestSIMDExplicitMemoryIndex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Xload_store exercises v128.load 0 offset=2 at runtime. Keep the
-	// explicit-index encoding in the fixture even if a WAT assembler omits it.
 	load := []byte{0xfd, 0x00, 0x44, 0x00, 0x02}
 	i := bytes.Index(wasm, load)
 	if i == -1 {

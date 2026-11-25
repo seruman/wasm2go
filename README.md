@@ -63,8 +63,7 @@ wasm2go -simdarch arm64 -o kernel_simd.go kernel.wasm
 ```
 
 The generator adds the appropriate build constraint; it does not need to run
-on the target machine. To compare a scalar library with its SIMD build,
-see the [Rust memchr benchmark](testdata/bench/memchr/).
+on the target machine.
 
 ## Generated code
 

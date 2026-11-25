@@ -7,8 +7,6 @@ import (
 	"strconv"
 )
 
-// A shuffle's lane selectors are instruction immediates. Specialize once per
-// distinct mask, rather than interpreting selectors every time the code runs.
 func (t *translator) shuffleFunc(lanes [16]byte) *ast.Ident {
 	if name := t.shuffles[lanes]; name != nil {
 		return name
@@ -51,8 +49,6 @@ func identityShuffle(lanes [16]byte, base byte) bool {
 	return true
 }
 
-// Each table lookup contributes only the bytes selected from that input.
-// 0x80 zeroes a lane on all targets (sign bit on x86, out of range elsewhere).
 func (t *translator) shuffleLookup(name string, lanes [16]byte) ast.Expr {
 	t.helpers.add("i8x16_lookup")
 	var result ast.Expr
@@ -84,9 +80,6 @@ func (t *translator) shuffleLookup(name string, lanes [16]byte) ast.Expr {
 	return result
 }
 
-// Go 1.27 has no common byte-table lookup across all three targets. In a
-// portable file, gather constant-index elements at the widest possible lane
-// size (e.g. a shuffle swapping the two 64-bit halves needs just two lanes).
 func (t *translator) shuffleLanes(lanes [16]byte) ast.Expr {
 	width := 8
 	for i, lane := range lanes {

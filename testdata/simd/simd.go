@@ -122,7 +122,6 @@ func i8x16_eq(x, y v128) v128 {
 }
 
 func i8x16_bitmask(x v128) int32 {
-
 	pack := func(u uint64) uint64 { return u & 0x8080_8080_8080_8080 * 0x0002_0408_1020_4081 >> 56 }
 	u := asU64(x)
 	return int32(pack(u.GetElem(0)) | pack(u.GetElem(1))<<8)

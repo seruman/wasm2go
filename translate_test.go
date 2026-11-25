@@ -54,7 +54,7 @@ func Test_translateSIMDBuildTags(t *testing.T) {
 		{"simd", "arm64", "(custom || other) && go1.27 && goexperiment.simd && arm64"},
 		{"simd", "amd64", "(custom || other) && go1.27 && goexperiment.simd && amd64"},
 		{"simd", "wasm", "(custom || other) && go1.27 && goexperiment.simd && wasm"},
-		{"fib", "amd64", "custom || other"}, // A scalar module stays portable.
+		{"fib", "amd64", "custom || other"},
 	} {
 		t.Run(tt.module+"/"+tt.arch, func(t *testing.T) {
 			*simdarch = tt.arch

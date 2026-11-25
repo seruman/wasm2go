@@ -1302,8 +1302,6 @@ func (t *translator) addHelpers(fset *token.FileSet, filename string) error {
 
 func (t *translator) resolveHelpers(fset *token.FileSet, files ...string) error {
 	var all []ast.Decl
-	// ParseFile resolves local names, but leaves references to helpers in
-	// sibling files unresolved. Keep these distinct from selector names.
 	free := set[*ast.Ident]{}
 	for _, file := range files {
 		f, err := parseHelpers(fset, file)

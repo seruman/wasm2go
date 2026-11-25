@@ -11,8 +11,6 @@ import (
 	"testing"
 )
 
-// Exercise the generated functions, not just the intrinsic: a wrong mask can
-// still emit a perfectly valid lookup. Compile both single-file output modes.
 func TestGeneratedShuffle(t *testing.T) {
 	wasm, err := os.ReadFile("testdata/shuffle/shuffle.wasm")
 	if err != nil {

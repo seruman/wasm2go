@@ -457,8 +457,6 @@ func i8x16_all_true(x v128) int32 {
 }
 
 func i8x16_bitmask(x v128) int32 {
-	// Multiply the eight isolated sign bits in each word by 1 + 2^7 + ...
-	// + 2^49: their copies in the top byte are in consecutive lane order.
 	pack := func(u uint64) uint64 { return ((u & 0x8080_8080_8080_8080) * 0x0002_0408_1020_4081) >> 56 }
 	u := asU64(x)
 	return int32(pack(u.GetElem(0)) | pack(u.GetElem(1))<<8)
@@ -476,7 +474,6 @@ func i16x8_all_true(x v128) int32 {
 }
 
 func i16x8_bitmask(x v128) int32 {
-	// As in i8x16_bitmask, but with four sign bits and a 15-bit stride.
 	pack := func(u uint64) uint64 { return ((u & 0x8000_8000_8000_8000) * 0x0000_2000_4000_8001) >> 60 }
 	u := asU64(x)
 	return int32(pack(u.GetElem(0)) | pack(u.GetElem(1))<<4)
@@ -511,9 +508,6 @@ func i32x4_add(x, y v128) v128 {
 	return fromI32(asI32(x).Add(asI32(y)))
 }
 
-// Clamp signed source lanes (also for unsigned narrow), then pack their low
-// bytes. Go 1.27's archsimd has no two-vector saturating narrow shared by
-// amd64, arm64, and wasm.
 func i8x16_narrow(x, y v128, lo, hi int16) v128 {
 	minv, maxv := archsimd.BroadcastInt16x8(lo), archsimd.BroadcastInt16x8(hi)
 	pack := func(x v128) uint64 {
@@ -523,13 +517,11 @@ func i8x16_narrow(x, y v128, lo, hi int16) v128 {
 	return fromU64(archsimd.Uint64x2{}.SetElem(0, pack(x)).SetElem(1, pack(y)))
 }
 
-// Discard the high byte of each 16-bit lane and close the gaps a pair at a time.
 func packLowBytes(u uint64) uint32 {
 	u &= 0x00ff_00ff_00ff_00ff
 	return packLowWords(u | u>>8)
 }
 
-// Discard the high 16 bits of both 32-bit lanes.
 func packLowWords(u uint64) uint32 {
 	return uint32(uint16(u)) | uint32(uint16(u>>32))<<16
 }
