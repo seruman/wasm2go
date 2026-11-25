@@ -50,9 +50,21 @@ including the following features:
 [^1]: `wasm2go` does **not** guarantee tail behavior;
 judge for yourself if using tail calls generates better code.
 
-[^2]: SIMD support requires `GOEXPERIMENT=simd`
-and is available on `amd64`, `arm64`, and `wasm`.
-On `amd64`, it also requires AVX2.
+[^2]: The translator builds with Go 1.25 or later, without any experiment flags.
+Compiling **generated SIMD code** requires Go 1.27 or later with `GOEXPERIMENT=simd`
+on `amd64` (AVX2), `arm64`, or `wasm`. To support other targets, translate a
+scalar build of the library and select it with complementary `-tags`.
+
+By default one SIMD output file builds on all three targets. Use `-simdarch`
+to specialize byte shuffles for one target, for example:
+
+```sh
+wasm2go -simdarch arm64 -o kernel_simd.go kernel.wasm
+```
+
+The generator adds the appropriate build constraint; it does not need to run
+on the target machine. To compare a scalar library with its SIMD build,
+see the [Rust memchr benchmark](testdata/bench/memchr/).
 
 ## Generated code
 
@@ -106,6 +118,8 @@ Usage: wasm2go [option]... [input.wasm]
         package name (default module name, or wasm2go)
   -provided value
         file containing provided import functions
+  -simdarch string
+        specialize SIMD output for amd64, arm64, or wasm (default: shared)
   -tags string
         go:build tags to include in the generated file
   -unsafe

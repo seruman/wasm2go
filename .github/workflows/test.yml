@@ -27,12 +27,24 @@ jobs:
       run: go test ./helpers ./internal/... ./libc-gen/...
 
     - name: Test SIMD
-      run: GOEXPERIMENT=simd go test . ./helpers
+      env: { GOTOOLCHAIN: go1.27.0, GOEXPERIMENT: simd }
+      run: go test . ./helpers
 
-    - name: Test SIMD wasm
+    - name: Execute SIMD tests on wasm
+      env: { GOTOOLCHAIN: go1.27.0, GOEXPERIMENT: simd }
       run: |
-        GOOS=js GOARCH=wasm GOEXPERIMENT=simd go test -c -o /tmp/wasm2go.test .
-        GOOS=js GOARCH=wasm GOEXPERIMENT=simd go test -c -o /tmp/helpers.test ./helpers
+        dir="$(mktemp -d)"
+        cp testdata/shuffle/shuffle_test.go "$dir/"
+        go run . -pkg shuffle -simdarch wasm -o "$dir/shuffle.go" testdata/shuffle/shuffle.wasm
+        export GOOS=js GOARCH=wasm
+        runner="$(go env GOROOT)/lib/wasm/go_js_wasm_exec"
+        go test -exec="$runner" -run '^Test_simd' .
+        go test -exec="$runner" ./helpers
+        go test -exec="$runner" "$dir/shuffle.go" "$dir/shuffle_test.go"
+
+    - name: Test minimum Go version (generator and scalar runtime)
+      env: { GOTOOLCHAIN: go1.25.0 }
+      run: go test . ./helpers ./internal/passes
 
     - name: Test 386
       run: GOARCH=386 GO386=sse2 go test ./helpers ./internal/...
@@ -93,7 +105,8 @@ jobs:
       run: go test ./helpers ./internal/... ./libc-gen/...
 
     - name: Test SIMD
-      run: GOEXPERIMENT=simd go test . ./helpers
+      env: { GOTOOLCHAIN: go1.27.0, GOEXPERIMENT: simd }
+      run: go test . ./helpers
 
     - name: Test arm
       run: GOARCH=arm GOARM=7 go test ./helpers ./internal/...

@@ -1,4 +1,4 @@
-//go:build goexperiment.simd && (amd64 || arm64 || wasm)
+//go:build go1.27 && goexperiment.simd && (amd64 || arm64 || wasm)
 
 package helpers
 
@@ -229,29 +229,16 @@ func v128_bitselect(x, y, c v128) v128 {
 	return c.And(x).Or(c.Not().And(y))
 }
 
-func v128_any_true(x v128) int32 {
-	b := v128_bytes(x)
-	for _, v := range b {
-		if v != 0 {
-			return 1
-		}
-	}
-	return 0
+func v128_is_zero(x v128) bool {
+	u := asU64(x)
+	return u.GetElem(0)|u.GetElem(1) == 0
 }
 
-func i8x16_shuffle(x, y v128, l0, l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15 uint8) v128 {
-	xb := v128_bytes(x)
-	yb := v128_bytes(y)
-	lanes := [...]uint8{l0, l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14, l15}
-	var b [16]byte
-	for i, lane := range lanes {
-		if lane < 16 {
-			b[i] = xb[lane]
-		} else {
-			b[i] = yb[lane-16]
-		}
+func v128_any_true(x v128) int32 {
+	if v128_is_zero(x) {
+		return 0
 	}
-	return v128_from_bytes(b)
+	return 1
 }
 
 func i8x16_splat(x int32) v128 {
@@ -463,22 +450,18 @@ func i64x2_ne(x, y v128) v128 {
 }
 
 func i8x16_all_true(x v128) int32 {
-	b := v128_bytes(x)
-	for _, v := range b {
-		if v == 0 {
-			return 0
-		}
+	if v128_is_zero(fromM8(x.Equal(v128{}))) {
+		return 1
 	}
-	return 1
+	return 0
 }
 
 func i8x16_bitmask(x v128) int32 {
-	b := v128_bytes(x)
-	var r int32
-	for i, v := range b {
-		r |= int32(v>>7) << i
-	}
-	return r
+	// Multiply the eight isolated sign bits in each word by 1 + 2^7 + ...
+	// + 2^49: their copies in the top byte are in consecutive lane order.
+	pack := func(u uint64) uint64 { return ((u & 0x8080_8080_8080_8080) * 0x0002_0408_1020_4081) >> 56 }
+	u := asU64(x)
+	return int32(pack(u.GetElem(0)) | pack(u.GetElem(1))<<8)
 }
 
 func i8x16_min_u(x, y v128) v128 {
@@ -486,22 +469,17 @@ func i8x16_min_u(x, y v128) v128 {
 }
 
 func i16x8_all_true(x v128) int32 {
-	b := v128_bytes(x)
-	for i := range 8 {
-		if binary.LittleEndian.Uint16(b[i*2:]) == 0 {
-			return 0
-		}
+	if v128_is_zero(fromM16(asU16(x).Equal(archsimd.Uint16x8{}))) {
+		return 1
 	}
-	return 1
+	return 0
 }
 
 func i16x8_bitmask(x v128) int32 {
-	b := v128_bytes(x)
-	var r int32
-	for i := range 8 {
-		r |= int32(binary.LittleEndian.Uint16(b[i*2:])>>15) << i
-	}
-	return r
+	// As in i8x16_bitmask, but with four sign bits and a 15-bit stride.
+	pack := func(u uint64) uint64 { return ((u & 0x8000_8000_8000_8000) * 0x0000_2000_4000_8001) >> 60 }
+	u := asU64(x)
+	return int32(pack(u.GetElem(0)) | pack(u.GetElem(1))<<4)
 }
 
 func i16x8_add_sat_u(x, y v128) v128 {
@@ -517,70 +495,68 @@ func i16x8_max_u(x, y v128) v128 {
 }
 
 func i32x4_all_true(x v128) int32 {
-	b := v128_bytes(x)
-	for i := range 4 {
-		if binary.LittleEndian.Uint32(b[i*4:]) == 0 {
-			return 0
-		}
+	if v128_is_zero(fromM32(asU32(x).Equal(archsimd.Uint32x4{}))) {
+		return 1
 	}
-	return 1
+	return 0
 }
 
 func i32x4_bitmask(x v128) int32 {
-	b := v128_bytes(x)
-	var r int32
-	for i := range 4 {
-		r |= int32(binary.LittleEndian.Uint32(b[i*4:])>>31) << i
-	}
-	return r
+	pack := func(u uint64) uint64 { return u>>31&1 | u>>62&2 }
+	u := asU64(x)
+	return int32(pack(u.GetElem(0)) | pack(u.GetElem(1))<<2)
 }
 
 func i32x4_add(x, y v128) v128 {
 	return fromI32(asI32(x).Add(asI32(y)))
 }
 
-func i8x16_narrow_i16x8_s(x, y v128) v128 {
-	xb, yb := v128_bytes(x), v128_bytes(y)
-	var b [16]byte
-	for i := range 8 {
-		b[i] = byte(min(max(int32(int16(binary.LittleEndian.Uint16(xb[i*2:]))), -128), 127))
-		b[i+8] = byte(min(max(int32(int16(binary.LittleEndian.Uint16(yb[i*2:]))), -128), 127))
+// Clamp signed source lanes (also for unsigned narrow), then pack their low
+// bytes. Go 1.27's archsimd has no two-vector saturating narrow shared by
+// amd64, arm64, and wasm.
+func i8x16_narrow(x, y v128, lo, hi int16) v128 {
+	minv, maxv := archsimd.BroadcastInt16x8(lo), archsimd.BroadcastInt16x8(hi)
+	pack := func(x v128) uint64 {
+		u := asI16(x).Max(minv).Min(maxv).ToBits().ReshapeToUint64s()
+		return uint64(packLowBytes(u.GetElem(0))) | uint64(packLowBytes(u.GetElem(1)))<<32
 	}
-	return v128_from_bytes(b)
+	return fromU64(archsimd.Uint64x2{}.SetElem(0, pack(x)).SetElem(1, pack(y)))
+}
+
+// Discard the high byte of each 16-bit lane and close the gaps a pair at a time.
+func packLowBytes(u uint64) uint32 {
+	u &= 0x00ff_00ff_00ff_00ff
+	return packLowWords(u | u>>8)
+}
+
+// Discard the high 16 bits of both 32-bit lanes.
+func packLowWords(u uint64) uint32 {
+	return uint32(uint16(u)) | uint32(uint16(u>>32))<<16
+}
+
+func i8x16_narrow_i16x8_s(x, y v128) v128 {
+	return i8x16_narrow(x, y, -128, 127)
 }
 
 func i8x16_narrow_i16x8_u(x, y v128) v128 {
-	xb, yb := v128_bytes(x), v128_bytes(y)
-	var b [16]byte
-	for i := range 8 {
-		b[i] = byte(min(max(int32(int16(binary.LittleEndian.Uint16(xb[i*2:]))), 0), 255))
-		b[i+8] = byte(min(max(int32(int16(binary.LittleEndian.Uint16(yb[i*2:]))), 0), 255))
+	return i8x16_narrow(x, y, 0, 255)
+}
+
+func i16x8_narrow(x, y v128, lo, hi int32) v128 {
+	minv, maxv := archsimd.BroadcastInt32x4(lo), archsimd.BroadcastInt32x4(hi)
+	pack := func(x v128) uint64 {
+		u := asI32(x).Max(minv).Min(maxv).ToBits().ReshapeToUint64s()
+		return uint64(packLowWords(u.GetElem(0))) | uint64(packLowWords(u.GetElem(1)))<<32
 	}
-	return v128_from_bytes(b)
+	return fromU64(archsimd.Uint64x2{}.SetElem(0, pack(x)).SetElem(1, pack(y)))
 }
 
 func i16x8_narrow_i32x4_s(x, y v128) v128 {
-	xb, yb := v128_bytes(x), v128_bytes(y)
-	var b [16]byte
-	for i := range 4 {
-		xv := int64(int32(binary.LittleEndian.Uint32(xb[i*4:])))
-		yv := int64(int32(binary.LittleEndian.Uint32(yb[i*4:])))
-		binary.LittleEndian.PutUint16(b[i*2:], uint16(min(max(xv, -32768), 32767)))
-		binary.LittleEndian.PutUint16(b[(i+4)*2:], uint16(min(max(yv, -32768), 32767)))
-	}
-	return v128_from_bytes(b)
+	return i16x8_narrow(x, y, -32768, 32767)
 }
 
 func i16x8_narrow_i32x4_u(x, y v128) v128 {
-	xb, yb := v128_bytes(x), v128_bytes(y)
-	var b [16]byte
-	for i := range 4 {
-		xv := int64(int32(binary.LittleEndian.Uint32(xb[i*4:])))
-		yv := int64(int32(binary.LittleEndian.Uint32(yb[i*4:])))
-		binary.LittleEndian.PutUint16(b[i*2:], uint16(min(max(xv, 0), 65535)))
-		binary.LittleEndian.PutUint16(b[(i+4)*2:], uint16(min(max(yv, 0), 65535)))
-	}
-	return v128_from_bytes(b)
+	return i16x8_narrow(x, y, 0, 65535)
 }
 
 func i16x8_extend_low_i8x16_s(x v128) v128 {

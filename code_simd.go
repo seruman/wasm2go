@@ -36,18 +36,19 @@ func (t *translator) readOpcodeSIMD(fn *funcCompiler) error {
 		}
 		fn.pushConst(expr)
 	case 0x0d: // i8x16.shuffle
-		var lanes [16]ast.Expr
+		var lanes [16]byte
 		for i := range lanes {
 			lane, err := t.in.ReadByte()
 			if err != nil {
 				return err
 			}
-			lanes[i] = &ast.BasicLit{Kind: token.INT, Value: formatUint(uint64(lane))}
+			if lane >= 32 {
+				return fmt.Errorf("invalid i8x16.shuffle lane: %d", lane)
+			}
+			lanes[i] = lane
 		}
-		y := fn.pop()
-		x := fn.pop()
-		args := append([]ast.Expr{x, y}, lanes[:]...)
-		fn.push(fn.simdCall("i8x16_shuffle", args...))
+		y, x := fn.pop(), fn.pop()
+		fn.push(&ast.CallExpr{Fun: t.shuffleFunc(lanes), Args: []ast.Expr{x, y}})
 	case 0x0f: // i8x16.splat
 		fn.uniHelper("i8x16_splat")
 	case 0x10: // i16x8.splat
@@ -262,16 +263,8 @@ func (fn *funcCompiler) simdCall(name string, args ...ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{Fun: newID(name), Args: args}
 }
 
-func (fn *funcCompiler) simdMemArg() (uint64, error) {
-	_, err := readLEB128(fn.translator.in) // align
-	if err != nil {
-		return 0, err
-	}
-	return readLEB128(fn.translator.in)
-}
-
 func (fn *funcCompiler) simdLoad(name string) error {
-	offset, err := fn.simdMemArg()
+	offset, err := fn.readMemOffset()
 	if err != nil {
 		return err
 	}
@@ -281,7 +274,7 @@ func (fn *funcCompiler) simdLoad(name string) error {
 }
 
 func (fn *funcCompiler) simdStore(name string) error {
-	offset, err := fn.simdMemArg()
+	offset, err := fn.readMemOffset()
 	if err != nil {
 		return err
 	}
@@ -292,7 +285,7 @@ func (fn *funcCompiler) simdStore(name string) error {
 }
 
 func (fn *funcCompiler) simdLoadLane(name string) error {
-	offset, err := fn.simdMemArg()
+	offset, err := fn.readMemOffset()
 	if err != nil {
 		return err
 	}
@@ -308,7 +301,7 @@ func (fn *funcCompiler) simdLoadLane(name string) error {
 }
 
 func (fn *funcCompiler) simdStoreLane(name string) error {
-	offset, err := fn.simdMemArg()
+	offset, err := fn.readMemOffset()
 	if err != nil {
 		return err
 	}

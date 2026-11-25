@@ -7,6 +7,24 @@ import (
 	"slices"
 )
 
+// readMemOffset consumes a memarg. The translator supports one linear memory.
+func (t *translator) readMemOffset() (uint64, error) {
+	flags, err := readLEB128(t.in)
+	if err != nil {
+		return 0, err
+	}
+	if flags&0x40 != 0 { // Explicit memory index precedes the offset.
+		index, err := readLEB128(t.in)
+		if err != nil {
+			return 0, err
+		}
+		if index != 0 {
+			return 0, fmt.Errorf("unsupported memory index %d", index)
+		}
+	}
+	return readLEB128(t.in)
+}
+
 func (t *translator) readCodeSection() error {
 	numFuncs, err := readLEB128(t.in)
 	if err != nil {
@@ -615,12 +633,8 @@ func (t *translator) readCodeForFunction(fn *funcCompiler) error {
 				Lhs: []ast.Expr{&ast.IndexExpr{X: tab, Index: fn.pop()}}})
 
 		case 0x2c, 0x2d, 0x30, 0x31: // load8
-			_, err := readLEB128(t.in) // align
+			offset, err := t.readMemOffset()
 			if err != nil {
-				return err
-			}
-			offset, err := readLEB128(t.in)
-			if err != nil { // offset
 				return err
 			}
 
@@ -637,12 +651,8 @@ func (t *translator) readCodeForFunction(fn *funcCompiler) error {
 			}
 
 		case 0x28, 0x29, 0x2a, 0x2b, 0x2e, 0x2f, 0x32, 0x33, 0x34, 0x35: // load
-			_, err := readLEB128(t.in) // align
+			offset, err := t.readMemOffset()
 			if err != nil {
-				return err
-			}
-			offset, err := readLEB128(t.in)
-			if err != nil { // offset
 				return err
 			}
 
@@ -670,12 +680,8 @@ func (t *translator) readCodeForFunction(fn *funcCompiler) error {
 			}
 
 		case 0x3a, 0x3c: // store8
-			_, err := readLEB128(t.in) // align
+			offset, err := t.readMemOffset()
 			if err != nil {
-				return err
-			}
-			offset, err := readLEB128(t.in)
-			if err != nil { // offset
 				return err
 			}
 
@@ -687,12 +693,8 @@ func (t *translator) readCodeForFunction(fn *funcCompiler) error {
 				Rhs: []ast.Expr{convert(val, "byte")}})
 
 		case 0x36, 0x37, 0x38, 0x39, 0x3b, 0x3d, 0x3e: // store
-			_, err := readLEB128(t.in) // align
+			offset, err := t.readMemOffset()
 			if err != nil {
-				return err
-			}
-			offset, err := readLEB128(t.in)
-			if err != nil { // offset
 				return err
 			}
 

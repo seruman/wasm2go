@@ -45,25 +45,36 @@ func Test_translate(t *testing.T) {
 }
 
 func Test_translateSIMDBuildTags(t *testing.T) {
-	f, err := os.Open("testdata/simd/simd.wasm")
-	if err != nil {
-		t.Fatal(err)
+	oldTags, oldArch := *tags, *simdarch
+	defer func() { *tags, *simdarch = oldTags, oldArch }()
+	*tags = "custom || other"
+
+	for _, tt := range []struct{ module, arch, constraint string }{
+		{"simd", "", "(custom || other) && go1.27 && goexperiment.simd && (amd64 || arm64 || wasm)"},
+		{"simd", "arm64", "(custom || other) && go1.27 && goexperiment.simd && arm64"},
+		{"simd", "amd64", "(custom || other) && go1.27 && goexperiment.simd && amd64"},
+		{"simd", "wasm", "(custom || other) && go1.27 && goexperiment.simd && wasm"},
+		{"fib", "amd64", "custom || other"}, // A scalar module stays portable.
+	} {
+		t.Run(tt.module+"/"+tt.arch, func(t *testing.T) {
+			*simdarch = tt.arch
+			b, err := os.ReadFile("testdata/" + tt.module + "/" + tt.module + ".wasm")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			if err := translate(bytes.NewReader(b), &out); err != nil {
+				t.Fatal(err)
+			}
+			got := strings.SplitN(out.String(), "\n", 4)[2]
+			if want := "//go:build " + tt.constraint; got != want {
+				t.Errorf("got %q, want %q", got, want)
+			}
+		})
 	}
-	defer f.Close()
-
-	oldTags := *tags
-	*tags = "custom"
-	defer func() { *tags = oldTags }()
-
-	var out bytes.Buffer
-	if err := translate(f, &out); err != nil {
-		t.Fatal(err)
-	}
-
-	got := strings.SplitN(out.String(), "\n", 4)[2]
-	want := "//go:build (custom) && goexperiment.simd && (amd64 || arm64 || wasm)"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
+	*simdarch = "arm"
+	if err := translate(new(bytes.Reader), new(bytes.Buffer)); err == nil || !strings.Contains(err.Error(), "-simdarch") {
+		t.Errorf("unexpected error for unsupported architecture: %v", err)
 	}
 }
 

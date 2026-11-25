@@ -1,4 +1,4 @@
-//go:build !generator && goexperiment.simd && (amd64 || arm64 || wasm)
+//go:build !generator && go1.27 && goexperiment.simd && (amd64 || arm64 || wasm)
 
 package main
 

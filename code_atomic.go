@@ -21,11 +21,7 @@ func (t *translator) readOpcodeAtomic(fn *funcCompiler) error {
 
 	needsUnsafe("unsupported atomic opcode")
 
-	var offset uint64
-	_, err = readLEB128(t.in) // align
-	if err == nil {
-		offset, err = readLEB128(t.in)
-	}
+	offset, err := t.readMemOffset()
 	if err != nil {
 		return err
 	}

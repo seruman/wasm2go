@@ -1,4 +1,4 @@
-//go:build goexperiment.simd && (amd64 || arm64 || wasm)
+//go:build go1.27 && goexperiment.simd && (amd64 || arm64 || wasm)
 
 package helpers
 
@@ -26,17 +26,6 @@ func Test_v128_bitselect(t *testing.T) {
 	}
 
 	if got := v128_bytes(v128_bitselect(x, y, mask)); got != want {
-		t.Errorf("got %v, want %v", got, want)
-	}
-}
-
-func Test_i8x16_shuffle(t *testing.T) {
-	x := v128_from_bytes([16]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15})
-	y := v128_from_bytes([16]byte{16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31})
-	want := [16]byte{31, 0, 30, 1, 29, 2, 28, 3, 27, 4, 26, 5, 25, 6, 24, 7}
-
-	got := i8x16_shuffle(x, y, 31, 0, 30, 1, 29, 2, 28, 3, 27, 4, 26, 5, 25, 6, 24, 7)
-	if got := v128_bytes(got); got != want {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }

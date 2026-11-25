@@ -23,7 +23,9 @@
     v128.const i8x16 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
     v128.store offset=3
     i32.const 33
-    v128.load offset=2
+    ;; simd.wasm intentionally encodes the explicit zero index (memarg 44 00 02),
+    ;; even though assemblers may omit it. The offset must still be applied.
+    v128.load 0 offset=2
     i8x16.extract_lane_u 15)
 
   (func (export "load_lane") (result i32)

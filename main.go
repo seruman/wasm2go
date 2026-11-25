@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	output = flag.String("o", "", "output file (default stdout)")
-	pkg    = flag.String("pkg", "", "package name (default module name, or wasm2go)")
-	tags   = flag.String("tags", "", "go:build tags to include in the generated file")
+	output   = flag.String("o", "", "output file (default stdout)")
+	pkg      = flag.String("pkg", "", "package name (default module name, or wasm2go)")
+	tags     = flag.String("tags", "", "go:build tags to include in the generated file")
+	simdarch = flag.String("simdarch", "", "specialize SIMD output for amd64, arm64, or wasm (default: shared)")
 
 	embed     = flag.Bool("embed", false, "go:embed data sections from a .dat file")
 	nanbox    = flag.Bool("nanbox", false, "attempt to canonicalize NaNs")
