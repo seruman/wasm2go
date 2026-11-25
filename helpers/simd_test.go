@@ -160,3 +160,31 @@ func Test_f64x2(t *testing.T) {
 		t.Errorf("got %v, want %v", gotMul, wantMul)
 	}
 }
+
+func u16x8(lanes ...uint16) v128 {
+	var b [16]byte
+	for i, lane := range lanes {
+		binary.LittleEndian.PutUint16(b[i*2:], lane)
+	}
+	return v128_from_bytes(b)
+}
+
+func Test_i16x8_add_sat_u(t *testing.T) {
+	x := u16x8(1, 0xfff0, 0xffff, 0, 100, 0x8000, 0x7fff, 2)
+	y := u16x8(2, 0x0020, 1, 0, 200, 0x8000, 1, 0xfffe)
+	want := v128_bytes(u16x8(3, 0xffff, 0xffff, 0, 300, 0xffff, 0x8000, 0xffff))
+
+	if got := v128_bytes(i16x8_add_sat_u(x, y)); got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func Test_i16x8_max_u(t *testing.T) {
+	x := u16x8(1, 0xffff, 0x8000, 7, 0, 300, 2, 0x7fff)
+	y := u16x8(2, 0x0001, 0x7fff, 7, 0, 299, 0xfffe, 0x8000)
+	want := v128_bytes(u16x8(2, 0xffff, 0x8000, 7, 0, 300, 0xfffe, 0x8000))
+
+	if got := v128_bytes(i16x8_max_u(x, y)); got != want {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}

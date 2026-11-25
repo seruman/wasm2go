@@ -504,8 +504,16 @@ func i16x8_bitmask(x v128) int32 {
 	return r
 }
 
+func i16x8_add_sat_u(x, y v128) v128 {
+	return fromU16(asU16(x).AddSaturated(asU16(y)))
+}
+
 func i16x8_min_u(x, y v128) v128 {
 	return fromU16(asU16(x).Min(asU16(y)))
+}
+
+func i16x8_max_u(x, y v128) v128 {
+	return fromU16(asU16(x).Max(asU16(y)))
 }
 
 func i32x4_all_true(x v128) int32 {

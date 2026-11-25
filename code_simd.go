@@ -211,8 +211,12 @@ func (t *translator) readOpcodeSIMD(fn *funcCompiler) error {
 		fn.uniHelper("i16x8_extend_low_i8x16_u")
 	case 0x8a: // i16x8.extend_high_i8x16_u
 		fn.uniHelper("i16x8_extend_high_i8x16_u")
+	case 0x90: // i16x8.add_sat_u
+		fn.binHelper("i16x8_add_sat_u")
 	case 0x97: // i16x8.min_u
 		fn.binHelper("i16x8_min_u")
+	case 0x99: // i16x8.max_u
+		fn.binHelper("i16x8_max_u")
 	case 0xa3: // i32x4.all_true
 		fn.uniHelper("i32x4_all_true")
 	case 0xa4: // i32x4.bitmask
