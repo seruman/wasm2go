@@ -29,7 +29,8 @@ var helperFiles goembed.FS
 
 // These helpers can never trap.
 var pureHelpers = set[string]{
-	"i32_shl": {}, "i32_shr_s": {}, "i32_shr_u": {}, "i32_rotl": {}, "i32_rotr": {},
+	"i8x16_bitmask": {},
+	"i32_shl":       {}, "i32_shr_s": {}, "i32_shr_u": {}, "i32_rotl": {}, "i32_rotr": {},
 	"i64_shl": {}, "i64_shr_s": {}, "i64_shr_u": {}, "i64_rotl": {}, "i64_rotr": {},
 	"f32_abs": {}, "f32_copysign": {}, "f32_min": {}, "f32_max": {},
 	"f64_min": {}, "f64_max": {}, "min": {}, "max": {},

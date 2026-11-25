@@ -284,8 +284,7 @@ func (fn *funcCompiler) popCond() ast.Expr {
 		return entry.expr
 	}
 
-	return &ast.BinaryExpr{
-		X: entry.expr, Op: token.NEQ, Y: literal0}
+	return fn.compare(entry.expr, token.NEQ, literal0)
 }
 
 // Pops an entry from the value stack.
@@ -563,14 +562,42 @@ func (fn *funcCompiler) eqzOp() {
 	if kind == entryCond {
 		fn.pushCond(&ast.UnaryExpr{Op: token.NOT, X: expr})
 	} else {
-		fn.pushCond(&ast.BinaryExpr{
-			X: expr, Op: token.EQL, Y: literal0})
+		fn.pushCond(fn.compare(expr, token.EQL, literal0))
 	}
 }
 
 // Executes a comparision operation.
 func (fn *funcCompiler) cmpOp(op token.Token) {
-	fn.pushCond(&ast.BinaryExpr{Y: fn.pop(), X: fn.pop(), Op: op})
+	y, x := fn.pop(), fn.pop()
+	fn.pushCond(fn.compare(x, op, y))
+}
+
+func (fn *funcCompiler) compare(x ast.Expr, op token.Token, y ast.Expr) ast.Expr {
+	if op == token.EQL || op == token.NEQ {
+		var mask ast.Expr
+		switch {
+		case isI32Zero(y):
+			mask = x
+		case isI32Zero(x):
+			mask = y
+		}
+		if call, ok := mask.(*ast.CallExpr); ok && call.Fun == newID("i8x16_bitmask") {
+			test := fn.simdCall("i8x16_bitmask_nonzero", call.Args...)
+			if op == token.EQL {
+				return &ast.UnaryExpr{Op: token.NOT, X: test}
+			}
+			return test
+		}
+	}
+	return &ast.BinaryExpr{X: x, Op: op, Y: y}
+}
+
+func isI32Zero(expr ast.Expr) bool {
+	if expr == literal0 {
+		return true
+	}
+	v, ok := islit(expr, "i32")
+	return ok && v == 0
 }
 
 // Executes a uint32 comparision operation.

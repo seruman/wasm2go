@@ -36,6 +36,9 @@ func TestSIMDReductions(t *testing.T) {
 					mask |= int32(b[i+tc.width-1]>>7) << (i / tc.width)
 				}
 				x := v128_from_bytes(b)
+				if tc.width == 1 && i8x16_bitmask_nonzero(x) != (mask != 0) {
+					t.Fatalf("%x: incorrect bitmask condition for mask %#x", b, mask)
+				}
 				if m, a, v := tc.mask(x), tc.all(x), v128_any_true(x); m != mask || a != all || v != any {
 					t.Fatalf("%x: mask/all/any = %#x/%d/%d, want %#x/%d/%d", b, m, a, v, mask, all, any)
 				}

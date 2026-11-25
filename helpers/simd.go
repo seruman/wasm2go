@@ -124,7 +124,9 @@ func fromM64(x archsimd.Mask64x2) v128 {
 }
 
 func v128_load[T uint32 | int64](mem []byte, addr T) v128 {
-	return archsimd.LoadUint8x16(mem[addr:])
+	i := uint64(addr)
+	mem = mem[:len(mem):len(mem)]
+	return archsimd.LoadUint8x16(mem[i : i+16])
 }
 
 func v128_store[T uint32 | int64](mem []byte, addr T, x v128) {
@@ -460,6 +462,11 @@ func i8x16_bitmask(x v128) int32 {
 	pack := func(u uint64) uint64 { return ((u & 0x8080_8080_8080_8080) * 0x0002_0408_1020_4081) >> 56 }
 	u := asU64(x)
 	return int32(pack(u.GetElem(0)) | pack(u.GetElem(1))<<8)
+}
+
+func i8x16_bitmask_nonzero(x v128) bool {
+	u := asU64(x)
+	return (u.GetElem(0)|u.GetElem(1))&0x8080_8080_8080_8080 != 0
 }
 
 func i8x16_min_u(x, y v128) v128 {

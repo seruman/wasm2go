@@ -60,6 +60,39 @@ func Test_i16x8_extend_high_i8x16_s(t *testing.T) {
 	}
 }
 
+func Test_v128_load(t *testing.T) {
+	mem := make([]byte, 19, 64)
+	for i := range mem {
+		mem[i] = byte(i + 1)
+	}
+	want := [16]byte(mem[3:])
+	if got := v128_bytes(v128_load(mem, uint32(3))); got != want {
+		t.Fatalf("last load: got %v, want %v", got, want)
+	}
+	if got := v128_bytes(v128_load(mem, int64(3))); got != want {
+		t.Fatalf("last load (i64): got %v, want %v", got, want)
+	}
+	for _, tc := range []struct {
+		name string
+		load func() v128
+	}{
+		{"one byte past", func() v128 { return v128_load(mem, uint32(4)) }},
+		{"short memory", func() v128 { return v128_load(mem[:15], uint32(0)) }},
+		{"near u32 wrap", func() v128 { return v128_load(mem, ^uint32(0)-7) }},
+		{"offset past 4 GiB", func() v128 { return v128_load(mem, int64(1)<<32) }},
+		{"near u64 wrap", func() v128 { return v128_load(mem, int64(-8)) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Error("load did not trap")
+				}
+			}()
+			_ = tc.load()
+		})
+	}
+}
+
 func Test_v128_memory(t *testing.T) {
 	mem := make([]byte, 32)
 	binary.LittleEndian.PutUint32(mem[3:], 0x89abcdef)

@@ -25,19 +25,16 @@ func New() *Module {
 	return m
 }
 func (m *Module) Xglobal() int32 {
-	t0 := i8x16_bitmask(m._mask)
-	return t0
+	return i8x16_bitmask(m._mask)
 }
 func (m *Module) Xblock() int32 {
 	var p0 v128
 	p0 = v128_const(0xffffffffffffffff, 0xffffffffffffffff)
-	t1 := i8x16_bitmask(p0)
-	return t1
+	return i8x16_bitmask(p0)
 }
 func (m *Module) Xmask() int32 {
 	t0 := i8x16_eq(v128_const(0x706050403020100, 0xf0e0d0c0b0a0908), v128_const(0x706050403020100, 0xf0e0d0c0b0a0908))
-	t1 := i8x16_bitmask(t0)
-	return t1
+	return i8x16_bitmask(t0)
 }
 func (m *Module) Xload_store() int32 {
 	v128_store(m.memory, int64(uint32(i32(32)))+3, v128_const(0x706050403020100, 0xf0e0d0c0b0a0908))
@@ -94,7 +91,9 @@ func fromM8(x archsimd.Mask8x16) v128 {
 }
 
 func v128_load[T uint32 | int64](mem []byte, addr T) v128 {
-	return archsimd.LoadUint8x16(mem[addr:])
+	i := uint64(addr)
+	mem = mem[:len(mem):len(mem)]
+	return archsimd.LoadUint8x16(mem[i : i+16])
 }
 
 func v128_store[T uint32 | int64](mem []byte, addr T, x v128) {
